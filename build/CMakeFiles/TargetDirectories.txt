@@ -1,9 +1,0 @@
-C:/workspace/paCman/build/CMakeFiles/Experimental.dir
-C:/workspace/paCman/build/CMakeFiles/Nightly.dir
-C:/workspace/paCman/build/CMakeFiles/Continuous.dir
-C:/workspace/paCman/build/CMakeFiles/NightlyMemoryCheck.dir
-C:/workspace/paCman/build/CMakeFiles/pacman.dir
-C:/workspace/paCman/build/CMakeFiles/PACKAGE.dir
-C:/workspace/paCman/build/CMakeFiles/RUN_TESTS.dir
-C:/workspace/paCman/build/CMakeFiles/ALL_BUILD.dir
-C:/workspace/paCman/build/CMakeFiles/ZERO_CHECK.dir
