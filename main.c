@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
             }
         }
 
-        // Teleport Pac-Man if it goes off the screen
+        // Teleport Pac-Man if it goes off the screen and test workflow
         if (pacman.x < 0)
         {
             pacman.x = WINDOW_WIDTH - PACMAN_SIZE;
