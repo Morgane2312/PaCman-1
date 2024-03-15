@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#define WINDOW_WIDTH 640
-#define WINDOW_HEIGHT 480
+#define WINDOW_WIDTH 900
+#define WINDOW_HEIGHT 600
 #define PACMAN_SIZE 20
 #define PACMAN_SPEED 5
 
@@ -93,10 +93,10 @@ int main(int argc, char *argv[])
             pacman.y = 0;
         }
 
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_SetRenderDrawColor(renderer, 194, 243, 192, 255);
         SDL_RenderClear(renderer);
 
-        SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
+        SDL_SetRenderDrawColor(renderer, 187, 145, 124, 255);
         SDL_Rect pacmanRect = {pacman.x, pacman.y, PACMAN_SIZE, PACMAN_SIZE};
         SDL_RenderFillRect(renderer, &pacmanRect);
 
