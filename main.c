@@ -16,6 +16,7 @@
 #define MAX_BARRIERS 50
 #define MAX_BAR_WIDTH 20
 #define MAX_BAR_HEIGHT 50
+#define NUM_NOODLES 4
 
 typedef struct {
     int x, y, dx, dy, lives;
@@ -29,11 +30,35 @@ typedef struct {
     int x, y, width, height;
 } Barrier;
 
+typedef struct {
+    int x, y;
+    bool isVisible;
+} Noodle;
+
+// Déclaration des fonctions
+void initBarriers();
+void handleInput(SDL_Event event);
+void updatePacman();
+void loadMenuTexture(SDL_Renderer* renderer);
+void updateEnemies();
+SDL_Texture* loadTexture(SDL_Renderer* renderer, const char* filePath);
+bool checkCollision(Enemy* enemy, Pacman* pacman);
+bool isSpawningOnBarrier(int x, int y, int size);
+void initEnemies(bool* gameOver);
+bool canMove(Enemy* enemy, int dx, int dy);
+bool detectObstacle(Enemy* enemy, int dx, int dy);
+void initNoodles();
+void loadNoodleTexture(SDL_Renderer* renderer);
+void renderNoodles(SDL_Renderer* renderer);
+void checkNoodleCollision();
+
+// Variables globales
 Pacman pacmanSingle = {WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2, 0, 0, 5};
 Pacman pacmans[NUM_PACMANS];
 Enemy enemies[NUM_ENEMIES];
+Noodle noodles[NUM_NOODLES];
+SDL_Texture* noodleTexture = NULL;
 SDL_Texture* enemyTexture = NULL;
-
 SDL_Texture* pacmanTextureGauche1 = NULL;
 SDL_Texture* pacmanTextureGauche2 = NULL;
 SDL_Texture* pacmanTextureDerriere = NULL;
@@ -47,6 +72,7 @@ SDL_Texture* menuTexture = NULL;
 SDL_Texture* deathTexture = NULL;
 Barrier barriers[MAX_BARRIERS];
 
+// Fonction pour charger les textures de Pacman
 void loadPacmanTextures(SDL_Renderer* renderer) {
     const char* filePathGauche1 = "assets/totoro_gauche_1.png";
     const char* filePathGauche2 = "assets/totoro_gauche_2.png";
@@ -56,11 +82,7 @@ void loadPacmanTextures(SDL_Renderer* renderer) {
     const char* filePathDroit1 = "assets/totoro_droit_1.png";
     const char* filePathDroit2 = "assets/totoro_droit_2.png";
     const char* filePathDebut = "assets/totoro.png";
-    
-printf("Loading textures from:\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n",
-           filePathGauche1, filePathGauche2, filePathDerriere, filePathDevant1,
-           filePathDevant2, filePathDroit1, filePathDroit2, filePathDebut);
-    
+
     SDL_Surface* tempSurfaceGauche1 = IMG_Load(filePathGauche1);
     SDL_Surface* tempSurfaceGauche2 = IMG_Load(filePathGauche2);
     SDL_Surface* tempSurfaceDerriere = IMG_Load(filePathDerriere);
@@ -70,7 +92,7 @@ printf("Loading textures from:\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n",
     SDL_Surface* tempSurfaceDroit2 = IMG_Load(filePathDroit2);
     SDL_Surface* tempSurfaceDebut = IMG_Load(filePathDebut);
 
-   if (!tempSurfaceGauche1 || !tempSurfaceGauche2 || !tempSurfaceDerriere || !tempSurfaceDevant1 || !tempSurfaceDevant2 || !tempSurfaceDroit1 || !tempSurfaceDroit2 || !tempSurfaceDebut) {
+    if (!tempSurfaceGauche1 || !tempSurfaceGauche2 || !tempSurfaceDerriere || !tempSurfaceDevant1 || !tempSurfaceDevant2 || !tempSurfaceDroit1 || !tempSurfaceDroit2 || !tempSurfaceDebut) {
         printf("Impossible de charger l'une des images! Erreur SDL: %s\n", IMG_GetError());
         exit(1);
     }
@@ -237,7 +259,6 @@ void initBarriers() {
     barriers[26].width = 8;
     barriers[26].height = 35;
 
-
     // Grosses Barrières 
     barriers[28].x = 553;
     barriers[28].y = 7;
@@ -299,14 +320,28 @@ void initBarriers() {
     barriers[39].width = 55;
     barriers[39].height = 120;
 
+    // Arbres1
+    barriers[40].x = 540;
+    barriers[40].y = 183;
+    barriers[40].width = 12;
+    barriers[40].height = 50;
 
-//Arbres
-    barriers[40].x = 150;
-    barriers[40].y = 416;
-    barriers[40].width = 350;
-    barriers[40].height = 100;
+    barriers[41].x = 525;
+    barriers[41].y = 165;
+    barriers[41].width = 40;
+    barriers[41].height = 50;
     
-    }
+    // Arbres2
+    barriers[42].x = 195;
+    barriers[42].y = 270;
+    barriers[42].width = 20;
+    barriers[42].height = 50;
+
+    barriers[43].x = 200;
+    barriers[43].y = 290;
+    barriers[43].width = 10;
+    barriers[43].height = 50;    
+}
 
 void handleInput(SDL_Event event) {
     switch (event.key.keysym.sym) {
@@ -360,17 +395,15 @@ void loadMenuTexture(SDL_Renderer* renderer) {
     SDL_FreeSurface(tempSurface);
 }
 
-void initEnemies() {
+void initEnemies(bool* gameOver) {
     for (int i = 0; i < NUM_ENEMIES; i++) {
-        enemies[i].x = rand() % (WINDOW_WIDTH - PACMAN_SIZE);
-        enemies[i].y = rand() % (WINDOW_HEIGHT - PACMAN_SIZE);
-        if (rand() % 2) {
-            enemies[i].dx = (rand() % 2) * 2 - 1; 
-            enemies[i].dy = 0;
-        } else {                                  
-            enemies[i].dx = 0;
-            enemies[i].dy = (rand() % 2) * 2 - 1;
-        }
+        do {
+            enemies[i].x = rand() % (WINDOW_WIDTH - ENEMY_SIZE);
+            enemies[i].y = rand() % (WINDOW_HEIGHT - ENEMY_SIZE);
+        } while (isSpawningOnBarrier(enemies[i].x, enemies[i].y, ENEMY_SIZE) || checkCollision(&enemies[i], &pacmanSingle)); // Vérification de la collision avec une barrière et Pacman
+        
+        enemies[i].dx = (rand() % 2 == 0) ? 1 : -1;
+        enemies[i].dy = (rand() % 2 == 0) ? 1 : -1;
     }
 }
 
@@ -396,37 +429,141 @@ SDL_Texture* loadTexture(SDL_Renderer* renderer, const char* filePath) {
     return texture;
 }
 
+bool canMove(Enemy* enemy, int dx, int dy) {
+    int newX = enemy->x + dx;
+    int newY = enemy->y + dy;
+
+    for (int i = 0; i < MAX_BARRIERS; i++) {
+        if (newX < barriers[i].x + barriers[i].width &&
+            newX + ENEMY_SIZE > barriers[i].x &&
+            newY < barriers[i].y + barriers[i].height &&
+            newY + ENEMY_SIZE > barriers[i].y) {
+            return false;
+        }
+    }
+
+    if (newX < 0 || newX > WINDOW_WIDTH - ENEMY_SIZE || newY < 0 || newY > WINDOW_HEIGHT - ENEMY_SIZE) {
+        return false;
+    }
+
+    return true;
+}
+
+bool detectObstacle(Enemy* enemy, int dx, int dy) {
+    int newX = enemy->x + dx;
+    int newY = enemy->y + dy;
+
+    for (int i = 0; i < MAX_BARRIERS; i++) {
+        if (newX < barriers[i].x + barriers[i].width &&
+            newX + ENEMY_SIZE > barriers[i].x &&
+            newY < barriers[i].y + barriers[i].height &&
+            newY + ENEMY_SIZE > barriers[i].y) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 void updateEnemies() {
     for (int i = 0; i < NUM_ENEMIES; i++) {
-        // Calculer la nouvelle position des ennemis
-        int newX = (int)(enemies[i].x + enemies[i].dx * ENEMY_SPEED);
-        int newY = (int)(enemies[i].y + enemies[i].dy * ENEMY_SPEED);
+        int dx = enemies[i].dx * ENEMY_SPEED;
+        int dy = enemies[i].dy * ENEMY_SPEED;
 
-        // Vérifier les collisions avec les barrières
-        for (int j = 0; j < MAX_BARRIERS; j++) {
-            if (newX < barriers[j].x + barriers[j].width &&
-                newX + ENEMY_SIZE > barriers[j].x &&
-                newY < barriers[j].y + barriers[j].height &&
-                newY + ENEMY_SIZE > barriers[j].y) {
-                // Collision détectée, inverser la direction de déplacement
+        if (!detectObstacle(&enemies[i], dx, dy)) {
+            enemies[i].x += dx;
+            enemies[i].y += dy;
+        } else {
+            // Essayer une nouvelle direction si obstacle détecté
+            int newDx = 0, newDy = 0;
+            bool foundDirection = false;
+            for (int attempts = 0; attempts < 4; attempts++) { // Try up to 4 different directions
+                newDx = (rand() % 3 - 1); // -1, 0, or 1
+                newDy = (rand() % 3 - 1); // -1, 0, or 1
+
+                if ((newDx != 0 || newDy != 0) && !detectObstacle(&enemies[i], newDx * ENEMY_SPEED, newDy * ENEMY_SPEED)) {
+                    foundDirection = true;
+                    break;
+                }
+            }
+
+            if (foundDirection) {
+                enemies[i].dx = newDx;
+                enemies[i].dy = newDy;
+                enemies[i].x += enemies[i].dx * ENEMY_SPEED;
+                enemies[i].y += enemies[i].dy * ENEMY_SPEED;
+            } else {
+                // If no valid direction found, reverse direction
                 enemies[i].dx *= -1;
                 enemies[i].dy *= -1;
-                break; // Sortir de la boucle pour éviter de vérifier les collisions avec d'autres barrières
             }
         }
-
-        // Mettre à jour la position des ennemis
-        enemies[i].x = newX;
-        enemies[i].y = newY;
-
-        // Vérifier les collisions avec les bords de l'écran
-        if (enemies[i].x <= 0 || enemies[i].x >= WINDOW_WIDTH - ENEMY_SIZE) enemies[i].dx *= -1;
-        if (enemies[i].y <= 0 || enemies[i].y >= WINDOW_HEIGHT - ENEMY_SIZE) enemies[i].dy *= -1;
     }
 }
+
+void loadNoodleTexture(SDL_Renderer* renderer) {
+    const char* filePath = "assets/nouilles.png";
+    SDL_Surface* tempSurface = IMG_Load(filePath);
+    if (!tempSurface) {
+        printf("Impossible de charger l'image %s! SDL Error: %s\n", filePath, IMG_GetError());
+        exit(1);
+    }
+    noodleTexture = SDL_CreateTextureFromSurface(renderer, tempSurface);
+    SDL_FreeSurface(tempSurface);
+}
+
+void initNoodles() {
+    for (int i = 0; i < NUM_NOODLES; i++) {
+        noodles[i].x = rand() % (WINDOW_WIDTH - PACMAN_SIZE);
+        noodles[i].y = rand() % (WINDOW_HEIGHT - PACMAN_SIZE);
+        noodles[i].isVisible = true;
+    }
+}
+
+void renderNoodles(SDL_Renderer* renderer) {
+    SDL_Rect noodleRect = {0, 0, PACMAN_SIZE, PACMAN_SIZE};
+    for (int i = 0; i < NUM_NOODLES; i++) {
+        if (noodles[i].isVisible) {
+            noodleRect.x = noodles[i].x;
+            noodleRect.y = noodles[i].y;
+            SDL_RenderCopy(renderer, noodleTexture, NULL, &noodleRect);
+        }
+    }
+}
+
 bool checkCollision(Enemy* enemy, Pacman* pacman) {
-    return !(enemy->x + PACMAN_SIZE < pacman->x || enemy->x > pacman->x + PACMAN_SIZE ||
-             enemy->y + PACMAN_SIZE < pacman->y || enemy->y > pacman->y + PACMAN_SIZE);
+    return !(enemy->x + ENEMY_SIZE < pacman->x || enemy->x > pacman->x + PACMAN_SIZE ||
+             enemy->y + ENEMY_SIZE < pacman->y || enemy->y > pacman->y + PACMAN_SIZE);
+}
+
+bool isSpawningOnBarrier(int x, int y, int size) {
+    for (int i = 0; i < MAX_BARRIERS; i++) {
+        if (x < barriers[i].x + barriers[i].width &&
+            x + size > barriers[i].x &&
+            y < barriers[i].y + barriers[i].height &&
+            y + size > barriers[i].y) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void checkNoodleCollision() {
+    SDL_Rect pacmanRect = {pacmanSingle.x, pacmanSingle.y, PACMAN_SIZE, PACMAN_SIZE};
+    static int score = 0; // initialisation du score a 0 pour apres l'incrémenter
+    for (int i = 0; i < NUM_NOODLES; i++) // on parcours toutes les nouilles
+    {
+        if (noodles[i].isVisible) // et si la nouille est visible et que y'a collision on ajoute 1
+        {
+            SDL_Rect noodleRect = {noodles[i].x, noodles[i].y, PACMAN_SIZE, PACMAN_SIZE};
+            if (SDL_HasIntersection(&pacmanRect, &noodleRect)) {
+                noodles[i].isVisible = false;
+                score++; // On incrémente quand on touche une nouille
+                // on affiche le score au fur et a mesure dans la console
+                printf("Nouilles recuperees : %d/%d\n", score, NUM_NOODLES);
+            }
+        }
+    }
 }
 
 int main(int argc, char* argv[]) {
@@ -458,16 +595,18 @@ int main(int argc, char* argv[]) {
 
     loadPacmanTextures(renderer);
     loadEnemyTexture(renderer);
+    loadNoodleTexture(renderer);
 
     backgroundTexture = loadTexture(renderer, "assets/map_1.png");
     loadMenuTexture(renderer);
     deathTexture = loadTexture(renderer, "assets/mort.png");
 
     initBarriers(); // Initialisation des barrières
-    initEnemies();
+    bool gameOver = false;
+    initEnemies(&gameOver);
+    initNoodles();
 
     bool running = true;
-    bool gameOver = false; // Déclaration de la variable pour suivre l'état du jeu
     SDL_Event event;
 
     while (running) {
@@ -482,7 +621,8 @@ int main(int argc, char* argv[]) {
                     // Réinitialisation du jeu
                     pacmanSingle.lives = 5;
                     initBarriers();
-                    initEnemies();
+                    initEnemies(&gameOver);
+                    initNoodles();
                     gameOver = false;
                 }
             }
@@ -497,6 +637,7 @@ int main(int argc, char* argv[]) {
 
             updatePacman();
             updateEnemies();
+            checkNoodleCollision();
 
             for (int i = 0; i < NUM_ENEMIES; i++) {
                 if (checkCollision(&enemies[i], &pacmanSingle)) {
@@ -508,8 +649,10 @@ int main(int argc, char* argv[]) {
                         gameOver = true;
                     }
 
-                    enemies[i].x = rand() % (WINDOW_WIDTH - PACMAN_SIZE);
-                    enemies[i].y = rand() % (WINDOW_HEIGHT - PACMAN_SIZE);
+                    do {
+                        enemies[i].x = rand() % (WINDOW_WIDTH - ENEMY_SIZE);
+                        enemies[i].y = rand() % (WINDOW_HEIGHT - ENEMY_SIZE);
+                    } while (isSpawningOnBarrier(enemies[i].x, enemies[i].y, ENEMY_SIZE) || checkCollision(&enemies[i], &pacmanSingle)); // Vérification de la collision avec une barrière et Pacman
                 }
             }
         }
@@ -520,11 +663,14 @@ int main(int argc, char* argv[]) {
         SDL_RenderCopy(renderer, backgroundTexture, NULL, NULL);
 
         // Affichage des barrières
-        SDL_SetRenderDrawColor(renderer, 0, 0, 255, SDL_ALPHA_OPAQUE);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 0); // Rendre les barrières transparentes
         for (int i = 0; i < MAX_BARRIERS; i++) {
             SDL_Rect barrierRect = { barriers[i].x, barriers[i].y, barriers[i].width, barriers[i].height };
             SDL_RenderFillRect(renderer, &barrierRect);
         }
+
+        renderNoodles(renderer);
 
         // Affichage des ennemis
         SDL_Rect enemyRect = { 0, 0, ENEMY_SIZE, ENEMY_SIZE };
@@ -575,6 +721,7 @@ int main(int argc, char* argv[]) {
     SDL_DestroyTexture(enemyTexture);
     SDL_DestroyTexture(menuTexture);
     SDL_DestroyTexture(deathTexture);
+    SDL_DestroyTexture(noodleTexture);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     IMG_Quit();
