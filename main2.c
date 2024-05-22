@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <time.h>
+#include <math.h>
+#include <main2.h>
 
 #define WINDOW_WIDTH 715
 #define WINDOW_HEIGHT 500
@@ -11,8 +13,8 @@
 #define PACMAN_SPEED 1
 #define ENEMY_SIZE 25
 #define ENEMY_SPEED 1.5
-#define NUM_ENEMIES 6
-#define NUM_PACMANS 1
+#define NUM_ENEMIES 10
+#define NUM_PACMANS 10
 #define MAX_BARRIERS 50
 #define MAX_BAR_WIDTH 20
 #define MAX_BAR_HEIGHT 50
@@ -28,6 +30,10 @@ typedef struct {
 typedef struct {
     int x, y, width, height;
 } Barrier;
+
+double distance(int x1, int y1, int x2, int y2) {
+    return sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+}
 
 Pacman pacmanSingle = {WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2, 0, 0, 5};
 Pacman pacmans[NUM_PACMANS];
@@ -45,21 +51,19 @@ SDL_Texture* pacmanTextureDebut = NULL;
 SDL_Texture* backgroundTexture = NULL;
 SDL_Texture* menuTexture = NULL;
 SDL_Texture* deathTexture = NULL;
+
 Barrier barriers[MAX_BARRIERS];
 
 void loadPacmanTextures(SDL_Renderer* renderer) {
-    const char* filePathGauche1 = "assets/totoro_gauche_1.png";
-    const char* filePathGauche2 = "assets/totoro_gauche_2.png";
-    const char* filePathDerriere = "assets/totoro_dos.png";
-    const char* filePathDevant1 = "assets/totoro_bas_1.png";
-    const char* filePathDevant2 = "assets/totoro_bas_2.png";
-    const char* filePathDroit1 = "assets/totoro_droit_1.png";
-    const char* filePathDroit2 = "assets/totoro_droit_2.png";
-    const char* filePathDebut = "assets/totoro.png";
-    
-printf("Loading textures from:\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n",
-           filePathGauche1, filePathGauche2, filePathDerriere, filePathDevant1,
-           filePathDevant2, filePathDroit1, filePathDroit2, filePathDebut);
+    // Chargement des textures Pacman
+    const char* filePathGauche1 = "C:/workspace/PaCman/assets/totoro_gauche_1.png";
+    const char* filePathGauche2 = "C:/workspace/PaCman/assets/totoro_gauche_2.png";
+    const char* filePathDerriere = "C:/workspace/PaCman/assets/totoro_dos.png";
+    const char* filePathDevant1 = "C:/workspace/PaCman/assets/totoro_bas_1.png";
+    const char* filePathDevant2 = "C:/workspace/PaCman/assets/totoro_bas_2.png";
+    const char* filePathDroit1 = "C:/workspace/PaCman/assets/totoro_droit_1.png";
+    const char* filePathDroit2 = "C:/workspace/PaCman/assets/totoro_droit_2.png";
+    const char* filePathDebut = "C:/workspace/PaCman/assets/totoro.png";
     
     SDL_Surface* tempSurfaceGauche1 = IMG_Load(filePathGauche1);
     SDL_Surface* tempSurfaceGauche2 = IMG_Load(filePathGauche2);
@@ -70,7 +74,7 @@ printf("Loading textures from:\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n",
     SDL_Surface* tempSurfaceDroit2 = IMG_Load(filePathDroit2);
     SDL_Surface* tempSurfaceDebut = IMG_Load(filePathDebut);
 
-   if (!tempSurfaceGauche1 || !tempSurfaceGauche2 || !tempSurfaceDerriere || !tempSurfaceDevant1 || !tempSurfaceDevant2 || !tempSurfaceDroit1 || !tempSurfaceDroit2 || !tempSurfaceDebut) {
+    if (!tempSurfaceGauche1 || !tempSurfaceGauche2 || !tempSurfaceDerriere || !tempSurfaceDevant1 || !tempSurfaceDevant2 || !tempSurfaceDroit1 || !tempSurfaceDroit2 || !tempSurfaceDebut) {
         printf("Impossible de charger l'une des images! Erreur SDL: %s\n", IMG_GetError());
         exit(1);
     }
@@ -101,212 +105,7 @@ void initBarriers() {
     barriers[0].width = 57;
     barriers[0].height = 8;
 
-    barriers[1].x = 315;
-    barriers[1].y = 164;
-    barriers[1].width = 160;
-    barriers[1].height = 8;
-
-    barriers[2].x = 260;
-    barriers[2].y = 115;
-    barriers[2].width = 52;
-    barriers[2].height = 8;
-
-    barriers[3].x = 360;
-    barriers[3].y = 370;
-    barriers[3].width = 90;
-    barriers[3].height = 10;
-
-    barriers[4].x = 150;
-    barriers[4].y = 416;
-    barriers[4].width = 350;
-    barriers[4].height = 8;
-
-    barriers[5].x = 130;
-    barriers[5].y = 325;
-    barriers[5].width = 50;
-    barriers[5].height = 10;
-
-    barriers[6].x = 120;
-    barriers[6].y = 385;
-    barriers[6].width = 35;
-    barriers[6].height = 8;
-
-    barriers[7].x = 495;
-    barriers[7].y = 350;
-    barriers[7].width = 100;
-    barriers[7].height = 8;
-
-    barriers[8].x = 550;
-    barriers[8].y = 203;
-    barriers[8].width = 40;
-    barriers[8].height = 8;
-
-    barriers[9].x = 164;
-    barriers[9].y = 50;
-    barriers[9].width = 325;
-    barriers[9].height = 8;
-
-    barriers[10].x = 120;
-    barriers[10].y = 150;
-    barriers[10].width = 40;
-    barriers[10].height = 8;
-
-    barriers[11].x = 490;
-    barriers[11].y = 85;
-    barriers[11].width = 50;
-    barriers[11].height = 8;
-
-    barriers[27].x = 533;
-    barriers[27].y = 270;
-    barriers[27].width = 50;
-    barriers[27].height = 8;
-
-    //V
-    barriers[12].x = 115;
-    barriers[12].y = 160;
-    barriers[12].width = 8;
-    barriers[12].height = 235;
-
-    barriers[13].x = 590;
-    barriers[13].y = 203;
-    barriers[13].width = 8;
-    barriers[13].height = 155;
-
-    barriers[14].x = 545;
-    barriers[14].y = 90;
-    barriers[14].width = 8;
-    barriers[14].height = 120;
-
-    barriers[15].x = 490;
-    barriers[15].y = 350;
-    barriers[15].width = 8;
-    barriers[15].height = 70;
-
-    barriers[16].x = 150;
-    barriers[16].y = 390;
-    barriers[16].width = 8;
-    barriers[16].height = 30;
-
-    barriers[17].x = 150;
-    barriers[17].y = 60;
-    barriers[17].width = 8;
-    barriers[17].height = 98;
-
-    barriers[18].x = 260;
-    barriers[18].y = 55;
-    barriers[18].width = 8;
-    barriers[18].height = 60;
-
-    barriers[19].x = 205;
-    barriers[19].y = 55;
-    barriers[19].width = 8;
-    barriers[19].height = 110;
-
-    barriers[20].x = 305;
-    barriers[20].y = 122;
-    barriers[20].width = 8;
-    barriers[20].height = 50;
-
-    barriers[21].x = 475;
-    barriers[21].y = 170;
-    barriers[21].width = 8;
-    barriers[21].height = 80;
-
-    barriers[22].x = 450;
-    barriers[22].y = 290;
-    barriers[22].width = 8;
-    barriers[22].height = 80;
-
-    barriers[23].x = 350;
-    barriers[23].y = 220;
-    barriers[23].width = 8;
-    barriers[23].height = 160;
-
-    barriers[24].x = 180;
-    barriers[24].y = 270;
-    barriers[24].width = 8;
-    barriers[24].height = 60;
-
-    barriers[25].x = 255;
-    barriers[25].y = 165;
-    barriers[25].width = 8;
-    barriers[25].height = 60;
-
-    barriers[26].x = 490;
-    barriers[26].y = 50;
-    barriers[26].width = 8;
-    barriers[26].height = 35;
-
-
-    // Grosses Barrières 
-    barriers[28].x = 553;
-    barriers[28].y = 7;
-    barriers[28].width = 200;
-    barriers[28].height = 200;
-
-    barriers[29].x = 553;
-    barriers[29].y = 0;
-    barriers[29].width = 200;
-    barriers[29].height = 200;
-
-    barriers[30].x = 550;
-    barriers[30].y = -20;
-    barriers[30].width = 200;
-    barriers[30].height = 200;
-
-    barriers[31].x = 595;
-    barriers[31].y = 50;
-    barriers[31].width = 500;
-    barriers[31].height = 500;
-
-    barriers[32].x = 495;
-    barriers[32].y = 355;
-    barriers[32].width = 200;
-    barriers[32].height = 200;
-
-    barriers[33].x = 150;
-    barriers[33].y = 420;
-    barriers[33].width = 500;
-    barriers[33].height = 200;
-
-    barriers[34].x = 0;
-    barriers[34].y = 420;
-    barriers[34].width = 500;
-    barriers[34].height = 200;
-
-    barriers[35].x = 0;
-    barriers[35].y = 0;
-    barriers[35].width = 115;
-    barriers[35].height = 800;
-
-    barriers[36].x = 0;
-    barriers[36].y = 0;
-    barriers[36].width = 900;
-    barriers[36].height = 55;
-
-    barriers[37].x = 495;
-    barriers[37].y = 35;
-    barriers[37].width = 200;
-    barriers[37].height = 55;
-
-    barriers[38].x = 100;
-    barriers[38].y = 35;
-    barriers[38].width = 55;
-    barriers[38].height = 120;
-
-    barriers[39].x = 100;
-    barriers[39].y = 390;
-    barriers[39].width = 55;
-    barriers[39].height = 120;
-
-
-//Arbres
-    barriers[40].x = 150;
-    barriers[40].y = 416;
-    barriers[40].width = 350;
-    barriers[40].height = 100;
-    
-    }
+   
 
 void handleInput(SDL_Event event) {
     switch (event.key.keysym.sym) {
@@ -350,7 +149,7 @@ void updatePacman() {
 }
 
 void loadMenuTexture(SDL_Renderer* renderer) {
-    const char* menuFilePath = "assets/menu.png";
+    const char* menuFilePath = "C:/workspace/PaCman/assets/menu.png";
     SDL_Surface* tempSurface = IMG_Load(menuFilePath);
     if (!tempSurface) {
         printf("Impossible de charger l'image du menu %s! Erreur SDL: %s\n", menuFilePath, IMG_GetError());
@@ -361,9 +160,14 @@ void loadMenuTexture(SDL_Renderer* renderer) {
 }
 
 void initEnemies() {
+    srand(time(NULL));
     for (int i = 0; i < NUM_ENEMIES; i++) {
-        enemies[i].x = rand() % (WINDOW_WIDTH - PACMAN_SIZE);
-        enemies[i].y = rand() % (WINDOW_HEIGHT - PACMAN_SIZE);
+        do {
+            // Génération de positions aléatoires dans une zone rectangulaire autour de Pacman
+            enemies[i].x = pacmanSingle.x - 200 + rand() % 300; // Zone de 400 pixels autour de Pacman sur l'axe x
+            enemies[i].y = pacmanSingle.y - 200 + rand() % 300; // Zone de 400 pixels autour de Pacman sur l'axe y
+        } while (distance(enemies[i].x, enemies[i].y, pacmanSingle.x, pacmanSingle.y) < 30);
+        
         if (rand() % 2) {
             enemies[i].dx = (rand() % 2) * 2 - 1; 
             enemies[i].dy = 0;
@@ -374,8 +178,9 @@ void initEnemies() {
     }
 }
 
+
 void loadEnemyTexture(SDL_Renderer* renderer) {
-    const char* filePath = "assets/noiraude.png";
+    const char* filePath = "C:/workspace/PaCman/assets/noiraude.png";
     SDL_Surface* tempSurface = IMG_Load(filePath);
     if (!tempSurface) {
         printf("Impossible de charger l'image %s! SDL Error: %s\n", filePath, IMG_GetError());
@@ -396,6 +201,8 @@ SDL_Texture* loadTexture(SDL_Renderer* renderer, const char* filePath) {
     return texture;
 }
 
+
+
 void updateEnemies() {
     for (int i = 0; i < NUM_ENEMIES; i++) {
         // Calculer la nouvelle position des ennemis
@@ -408,22 +215,24 @@ void updateEnemies() {
                 newX + ENEMY_SIZE > barriers[j].x &&
                 newY < barriers[j].y + barriers[j].height &&
                 newY + ENEMY_SIZE > barriers[j].y) {
-                // Collision détectée, inverser la direction de déplacement
+                // Collision détectée, inverser la direction de l'ennemi
                 enemies[i].dx *= -1;
                 enemies[i].dy *= -1;
-                break; // Sortir de la boucle pour éviter de vérifier les collisions avec d'autres barrières
+                break; // Sortir de la boucle dès qu'une collision est détectée
             }
         }
 
-        // Mettre à jour la position des ennemis
-        enemies[i].x = newX;
-        enemies[i].y = newY;
+        // Mettre à jour la position des ennemis en fonction de leur direction
+        enemies[i].x = (int)(enemies[i].x + enemies[i].dx * ENEMY_SPEED);
+        enemies[i].y = (int)(enemies[i].y + enemies[i].dy * ENEMY_SPEED);
+
 
         // Vérifier les collisions avec les bords de l'écran
         if (enemies[i].x <= 0 || enemies[i].x >= WINDOW_WIDTH - ENEMY_SIZE) enemies[i].dx *= -1;
         if (enemies[i].y <= 0 || enemies[i].y >= WINDOW_HEIGHT - ENEMY_SIZE) enemies[i].dy *= -1;
     }
 }
+
 bool checkCollision(Enemy* enemy, Pacman* pacman) {
     return !(enemy->x + PACMAN_SIZE < pacman->x || enemy->x > pacman->x + PACMAN_SIZE ||
              enemy->y + PACMAN_SIZE < pacman->y || enemy->y > pacman->y + PACMAN_SIZE);
@@ -459,9 +268,9 @@ int main(int argc, char* argv[]) {
     loadPacmanTextures(renderer);
     loadEnemyTexture(renderer);
 
-    backgroundTexture = loadTexture(renderer, "assets/map_1.png");
+    backgroundTexture = loadTexture(renderer, "C:/workspace/PaCman/assets/map_2.png");
     loadMenuTexture(renderer);
-    deathTexture = loadTexture(renderer, "assets/mort.png");
+    deathTexture = loadTexture(renderer, "C:/workspace/PaCman/assets/mort.png");
 
     initBarriers(); // Initialisation des barrières
     initEnemies();
@@ -520,7 +329,8 @@ int main(int argc, char* argv[]) {
         SDL_RenderCopy(renderer, backgroundTexture, NULL, NULL);
 
         // Affichage des barrières
-        SDL_SetRenderDrawColor(renderer, 0, 0, 255, SDL_ALPHA_OPAQUE);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+       SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
         for (int i = 0; i < MAX_BARRIERS; i++) {
             SDL_Rect barrierRect = { barriers[i].x, barriers[i].y, barriers[i].width, barriers[i].height };
             SDL_RenderFillRect(renderer, &barrierRect);
